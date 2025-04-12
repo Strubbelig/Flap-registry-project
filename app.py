@@ -15,7 +15,11 @@ app.config['SECRET_KEY'] = os.environ.get('FLASK_SECRET_KEY', 'a_default_secret_
 # IMPORTANT: Use a persistent PostgreSQL URL for deployment (e.g., from Render, Neon, Supabase)
 # Example PostgreSQL URL format: postgresql://user:password@host:port/database
 DATABASE_URL = os.environ.get('DATABASE_URL', 'sqlite:///rdf_knowledge_graph.db')
-ONTOLOGY_FILE = 'ontology.ttl' # Path to your ontology file
+
+# Replace the local file path with the RAW GitHub URL
+# Make sure this URL points to the *raw* content of your ontology file
+# Example: Replace with your actual raw URL
+ONTOLOGY_URL = 'https://raw.githubusercontent.com/YourUsername/YourRepoName/main/ontology.ttl'
 
 # --- RDFLib Setup ---
 # Define your ontology's namespace
