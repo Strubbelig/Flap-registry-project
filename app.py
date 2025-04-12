@@ -14,7 +14,7 @@ app.config['SECRET_KEY'] = os.environ.get('FLASK_SECRET_KEY', 'a_default_secret_
 # Get Database URL from environment variable. Fallback to SQLite for easy local dev.
 # IMPORTANT: Use a persistent PostgreSQL URL for deployment (e.g., from Render, Neon, Supabase)
 # Example PostgreSQL URL format: postgresql://user:password@host:port/database
-DATABASE_URL = os.environ.get('DATABASE_URL', 'sqlite:///rdf_knowledge_graph.db')
+DATABASE_URL = os.environ.get('DATABASE_URL', 'postgresql://neondb_owner:npg_l5ywsD3mCBGH@ep-square-sun-a29ca8p3-pooler.eu-central-1.aws.neon.tech/neondb?sslmode=require')
 
 # Replace the local file path with the RAW GitHub URL
 # Make sure this URL points to the *raw* content of your ontology file
