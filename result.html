@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Add Result</title>
+     <style>
+        body { font-family: sans-serif; margin: 2em; }
+        .message { padding: 1em; margin-bottom: 1em; border-radius: 5px; background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb;}
+        code { background-color: #eee; padding: 0.2em 0.4em; border-radius: 3px;}
+    </style>
+</head>
+<body>
+    <h1>Add Data Result</h1>
+    <div class="message">
+        {{ message }}
+    </div>
+
+    {% if added_data %}
+    <h2>Details Added:</h2>
+    <ul>
+        <li>Person: <code>{{ added_data.person.name }}</code> (URI: <code>{{ added_data.person.uri }}</code>)</li>
+        <li>Company: <code>{{ added_data.company.name }}</code> (URI: <code>{{ added_data.company.uri }}</code>)</li>
+        <li>Relationship: <code>{{ added_data.relationship }}</code></li>
+    </ul>
+    {% endif %}
+
+    <p><a href="{{ url_for('index') }}">Add More Data</a></p>
+    <p><a href="{{ url_for('view_graph') }}">View all triples (debug)</a></p>
+
+</body>
+</html>
