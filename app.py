@@ -19,7 +19,7 @@ DATABASE_URL = os.environ.get('DATABASE_URL', 'postgresql://neondb_owner:npg_l5y
 # Replace the local file path with the RAW GitHub URL
 # Make sure this URL points to the *raw* content of your ontology file
 # Example: Replace with your actual raw URL
-ONTOLOGY_URL = 'https://raw.githubusercontent.com/YourUsername/YourRepoName/main/ontology.ttl'
+ONTOLOGY_URL = 'https://raw.githubusercontent.com/Strubbelig/Flap-ontology-project/flap_onto_corrected_7.owl'
 
 # --- RDFLib Setup ---
 # Define your ontology's namespace
@@ -54,29 +54,45 @@ def get_graph():
             # Check if ontology is loaded (simple check: see if a class exists)
             # This prevents reloading the ontology on every startup if already in DB
             if (EX.Person, RDF.type, OWL.Class) not in g:
-                print(f"Ontology not found in store. Parsing {ONTOLOGY_FILE}...")
+                print(f"Ontology not found in store. Parsing from {ONTOLOGY_URL}...")
                 try:
-                    g.parse(ONTOLOGY_FILE, format="turtle")
-                    print(f"Ontology {ONTOLOGY_FILE} parsed and loaded into the store.")
-                except FileNotFoundError:
-                    print(f"ERROR: Ontology file '{ONTOLOGY_FILE}' not found.")
+                    # --- OPTION 1 (Recommended): Parse directly from URL ---
+                    # RDFLib can often fetch and parse directly from a URL
+                    g.parse(ONTOLOGY_URL, format="owl")
+                    print(f"Ontology parsed successfully from URL.")
+
+                    # --- OPTION 2 (Alternative): Manually fetch then parse ---
+                    # Use this if direct URL parsing fails or you need more control
+                    # Requires importing 'requests' and 'io'
+                    # response = requests.get(ONTOLOGY_URL)
+                    # response.raise_for_status() # Raise HTTPError for bad responses (4xx or 5xx)
+                    # ontology_content = response.text
+                    # g.parse(data=ontology_content, format="turtle")
+                    # print(f"Ontology fetched and parsed successfully from URL.")
+                    # --- End Option 2 ---
+
+                # Update error handling to reflect URL fetching
+                except requests.exceptions.RequestException as e:
+                     print(f"ERROR: Failed to fetch ontology from {ONTOLOGY_URL}: {e}")
                 except Exception as e:
-                    print(f"ERROR: Failed to parse ontology file: {e}")
+                    # General exception for parsing errors or other issues
+                    print(f"ERROR: Failed to parse ontology from {ONTOLOGY_URL}: {e}")
             else:
                 print("Ontology already loaded in the store.")
 
+        # (Keep existing error handling for DB connection etc.)
         except PluginException as e:
-            print(f"ERROR: RDFLib store plugin issue (SQLAlchemy not found or config error?): {e}")
-            # Handle case where SQLAlchemy plugin isn't installed/found
-            g = None # Ensure g remains None if setup failed
+            print(f"ERROR: RDFLib store plugin issue: {e}")
+            g = None
         except OperationalError as e:
-            print(f"ERROR: Database connection failed ({DATABASE_URL}). Is the DB running? Correct credentials? Details: {e}")
-            g = None # Ensure g remains None if setup failed
+            print(f"ERROR: Database connection failed: {e}")
+            g = None
         except Exception as e:
             print(f"ERROR: An unexpected error occurred during graph initialization: {e}")
-            g = None # Ensure g remains None if setup failed
+            g = None
 
     return g
+
 
 # --- Flask Routes ---
 @app.route('/')
