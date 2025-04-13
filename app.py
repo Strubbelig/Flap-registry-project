@@ -9,7 +9,7 @@ from sqlalchemy.exc import OperationalError # To catch DB connection errors
 # --- Configuration ---
 app = Flask(__name__)
 # Use environment variable for sensitive info like Secret Key in production
-app.config['SECRET_KEY'] = os.environ.get('FLASK_SECRET_KEY', 'a_default_secret_key_for_dev')
+app.config['SECRET_KEY'] = os.environ.get('FLASK_SECRET_KEY', 'ALT-Lappen')
 
 # Get Database URL from environment variable. Fallback to SQLite for easy local dev.
 # IMPORTANT: Use a persistent PostgreSQL URL for deployment (e.g., from Render, Neon, Supabase)
@@ -23,9 +23,9 @@ ONTOLOGY_URL = 'https://raw.githubusercontent.com/Strubbelig/Flap-ontology-proje
 
 # --- RDFLib Setup ---
 # Define your ontology's namespace
-EX = Namespace("http://example.org/ontology#")
+EX = Namespace("https://purl.bioontology.org/ontology/ONTOFLAP/")
 # Define a base URI for instance data (can be different from ontology namespace)
-BASE_URI = Namespace("http://example.org/data/")
+BASE_URI = Namespace("https://purl.bioontology.org/ontology/ONTOFLAP/")
 
 # Configure the RDFLib store
 # Use SQLAlchemy as the store type, connecting to your DATABASE_URL
