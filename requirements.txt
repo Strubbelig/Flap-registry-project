@@ -1,6 +1,11 @@
 Flask>=2.0
 rdflib>=6.0
+rdflib-sqlalchemy>=0.5.4      # Needed for RDFLib + SQLAlchemy integration
 SQLAlchemy>=1.4
-psycopg2-binary>=2.9  # PostgreSQL driver
-gunicorn>=20.0        # WSGI server for deployment
-python-dotenv>=0.8
+psycopg2-binary>=2.9          # PostgreSQL driver
+gunicorn>=20.0                # WSGI server (used locally or in some deployments)
+python-dotenv>=0.8            # Optional: if you're loading environment variables from .env
+
+# These fix missing pkg_resources and ensure plugin loading works
+setuptools>=65.0.0
+wheel>=0.37.0
