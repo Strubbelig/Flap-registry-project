@@ -40,6 +40,9 @@ def get_graph():
     if g is None:
         print(f"Connecting to RDF store at: {DATABASE_URL}")
         try:
+            from rdflib.plugin import register, Plugin
+            from rdflib.store import Store
+            register('SQLAlchemy', Store, 'rdflib_sqlalchemy.store', 'SQLAlchemy')            
             # Get the SQLAlchemy plugin store
             store = Graph(store='SQLAlchemy', identifier=graph_identifier)
             store.open(DATABASE_URL, create=True)
