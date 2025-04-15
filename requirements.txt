@@ -9,3 +9,4 @@ python-dotenv>=0.8            # Optional: if you're loading environment variable
 # These fix missing pkg_resources and ensure plugin loading works
 setuptools>=65.0.0
 wheel>=0.37.0
+requests>=2.31.0
