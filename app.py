@@ -5,6 +5,7 @@ from rdflib.namespace import RDF, RDFS, OWL # Import common namespaces
 from rdflib.store import Store
 from rdflib.plugin import PluginException
 from sqlalchemy.exc import OperationalError # To catch DB connection errors
+import requests
 
 # --- Configuration ---
 app = Flask(__name__)
