@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Add Knowledge Graph Triple</title>
+    <style>
+        body { font-family: sans-serif; margin: 20px; }
+        label { display: block; margin-top: 10px; font-weight: bold; }
+        input[type="text"], select { width: 300px; padding: 8px; margin-top: 5px; border: 1px solid #ccc; border-radius: 4px; }
+        button { padding: 10px 15px; margin-top: 15px; background-color: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; }
+        button:hover { background-color: #0056b3; }
+        .flash { padding: 10px; margin-bottom: 15px; border-radius: 4px; }
+        .flash.success { background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .flash.error { background-color: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        .flash.warning { background-color: #fff3cd; color: #856404; border: 1px solid #ffeeba; }
+        .hidden { display: none; } /* Class to hide elements */
+    </style>
+</head>
+<body>
+    <h1>Add New Triple to Knowledge Graph</h1>
+
+    <!-- Flash messages -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        {% for category, message in messages %}
+          <div class="flash {{ category }}">{{ message }}</div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
+
+    <form action="{{ url_for('add_triple') }}" method="POST" id="tripleForm">
+        <!-- Subject -->
+        <fieldset>
+            <legend>Subject (New Instance)</legend>
+            <div>
+                <label for="subjectName">Instance Name:</label>
+                <input type="text" id="subjectName" name="subjectName" required>
+            </div>
+            <div>
+                <label for="subjectClass">Instance Type (Class):</label>
+                <select id="subjectClass" name="subjectClass" required>
+                    <option value="">-- Select Class --</option>
+                    {% for class in classes %}
+                        <option value="{{ class.uri }}">{{ class.label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+        </fieldset>
+
+        <!-- Predicate (Property/Relationship) -->
+        <fieldset>
+            <legend>Predicate (Property)</legend>
+             <div>
+                <label for="property">Property:</label>
+                <select id="property" name="property" required disabled>
+                    <option value="">-- Select Class First --</option>
+                    <!-- Options will be loaded by JavaScript -->
+                </select>
+            </div>
+        </fieldset>
+
+        <!-- Object -->
+        <fieldset>
+            <legend>Object (Value or Existing Instance)</legend>
+            <input type="hidden" id="objectKind" name="objectKind" value="literal"> <!-- Default to literal -->
+
+            <!-- Option 1: Literal Value -->
+            <div id="objectLiteralDiv">
+                <label for="objectValueLiteral">Value (Literal):</label>
+                <input type="text" id="objectValueLiteral" name="objectValueLiteral">
+                <!-- Could add type selector later (string, number, date) -->
+            </div>
+
+            <!-- Option 2: Existing Instance -->
+            <div id="objectInstanceDiv" class="hidden">
+                <label for="objectValueInstance">Value (Existing Instance):</label>
+                <select id="objectValueInstance" name="objectValueInstance" disabled>
+                    <option value="">-- Loading Instances... --</option>
+                    <!-- Options will be loaded by JavaScript -->
+                </select>
+                 <p><small>Note: List filtered by property's expected range (if known).</small></p>
+            </div>
+        </fieldset>
+
+        <button type="submit">Add Triple</button>
+    </form>
+
+    <hr>
+    <p><a href="{{ url_for('view_graph') }}">View All Triples (Debug)</a></p>
+
+    <!-- JavaScript for Dynamic Behaviour -->
+    <script>
+        const subjectClassSelect = document.getElementById('subjectClass');
+        const propertySelect = document.getElementById('property');
+        const objectLiteralDiv = document.getElementById('objectLiteralDiv');
+        const objectValueLiteralInput = document.getElementById('objectValueLiteral');
+        const objectInstanceDiv = document.getElementById('objectInstanceDiv');
+        const objectValueInstanceSelect = document.getElementById('objectValueInstance');
+        const objectKindInput = document.getElementById('objectKind'); // Hidden input
+
+        let availableProperties = []; // Store properties fetched for the selected class
+
+        // --- Event Listener for Class Selection ---
+        subjectClassSelect.addEventListener('change', async (event) => {
+            const selectedClassUri = event.target.value;
+            propertySelect.innerHTML = '<option value="">-- Loading Properties... --</option>'; // Clear old options
+            propertySelect.disabled = true;
+            objectValueInstanceSelect.innerHTML = '<option value="">-- Select Property First --</option>';
+            objectValueInstanceSelect.disabled = true;
+            hideInstanceSelector(); // Reset object selector
+
+            if (!selectedClassUri) {
+                 propertySelect.innerHTML = '<option value="">-- Select Class First --</option>';
+                 availableProperties = [];
+                 return;
+            }
+
+            try {
+                // Fetch properties for the selected class from our API
+                const response = await fetch(`/api/properties?class_uri=${encodeURIComponent(selectedClassUri)}`);
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                availableProperties = await response.json(); // Store fetched properties
+
+                propertySelect.innerHTML = '<option value="">-- Select Property --</option>'; // Reset default
+                if (availableProperties.length === 0) {
+                     propertySelect.innerHTML = '<option value="">-- No relevant properties found --</option>';
+                } else {
+                    availableProperties.forEach(prop => {
+                        const option = document.createElement('option');
+                        option.value = prop.uri;
+                        option.textContent = `${prop.label} (${prop.object_kind})`; // Show label and expected kind
+                        // Store kind and range info directly on the option element using data-* attributes
+                        option.dataset.objectKind = prop.object_kind;
+                        option.dataset.rangeUri = prop.range || ''; // Store range URI if available
+                        propertySelect.appendChild(option);
+                    });
+                     propertySelect.disabled = false;
+                }
+
+            } catch (error) {
+                console.error('Error fetching properties:', error);
+                propertySelect.innerHTML = '<option value="">-- Error Loading Properties --</option>';
+                availableProperties = [];
+            }
+        });
+
+        // --- Event Listener for Property Selection ---
+        propertySelect.addEventListener('change', async (event) => {
+            const selectedOption = event.target.selectedOptions[0];
+            const selectedPropertyUri = selectedOption.value;
+
+            // Reset object inputs
+            objectValueLiteralInput.value = '';
+            objectValueInstanceSelect.innerHTML = '<option value="">-- Loading Instances... --</option>';
+            objectValueInstanceSelect.disabled = true;
+
+            if (!selectedPropertyUri) {
+                hideInstanceSelector();
+                return;
+            }
+
+            const objectKind = selectedOption.dataset.objectKind; // Get kind from data attribute
+            const rangeUri = selectedOption.dataset.rangeUri;   // Get range from data attribute
+            objectKindInput.value = objectKind; // Update hidden input tracking the kind
+
+            if (objectKind === 'instance') {
+                showInstanceSelector();
+                // Fetch existing instances suitable for the object
+                // Use the range URI if available to filter instances by type
+                let fetchUrl = '/api/instances';
+                if (rangeUri) {
+                     fetchUrl += `?class_uri=${encodeURIComponent(rangeUri)}`;
+                     console.log(`Fetching instances of type: ${rangeUri}`);
+                } else {
+                    console.log("Fetching all instances (no specific range for property).");
+                }
+
+
+                try {
+                    const response = await fetch(fetchUrl);
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+                    const instances = await response.json();
+
+                    objectValueInstanceSelect.innerHTML = '<option value="">-- Select Instance --</option>'; // Reset default
+                     if (instances.length === 0) {
+                         objectValueInstanceSelect.innerHTML = '<option value="">-- No matching instances found --</option>';
+                    } else {
+                        instances.forEach(inst => {
+                            const option = document.createElement('option');
+                            option.value = inst.uri;
+                            option.textContent = inst.label; // Show instance label
+                            objectValueInstanceSelect.appendChild(option);
+                        });
+                         objectValueInstanceSelect.disabled = false;
+                    }
+
+                } catch (error) {
+                    console.error('Error fetching instances:', error);
+                     objectValueInstanceSelect.innerHTML = '<option value="">-- Error Loading Instances --</option>';
+                }
+
+            } else { // objectKind is 'literal' or 'unknown' (default to literal)
+                hideInstanceSelector();
+            }
+        });
+
+        // --- Helper functions to show/hide object input sections ---
+        function showInstanceSelector() {
+            objectLiteralDiv.classList.add('hidden');
+            objectValueLiteralInput.disabled = true; // Disable the input when hidden
+            objectValueLiteralInput.required = false; // Make not required
+
+            objectInstanceDiv.classList.remove('hidden');
+            objectValueInstanceSelect.disabled = false; // Enable the select (will be populated)
+            objectValueInstanceSelect.required = true; // Make required
+        }
+
+        function hideInstanceSelector() {
+            objectLiteralDiv.classList.remove('hidden');
+            objectValueLiteralInput.disabled = false; // Enable the input
+            objectValueLiteralInput.required = true; // Make required (check validation logic)
+
+            objectInstanceDiv.classList.add('hidden');
+            objectValueInstanceSelect.disabled = true; // Disable the select
+            objectValueInstanceSelect.required = false; // Make not required
+
+             // Default back to literal kind if we hide the instance selector
+            objectKindInput.value = 'literal';
+        }
+
+        // --- Initial setup ---
+        // Ensure the correct object input is visible based on initial state (should be literal)
+        hideInstanceSelector();
+
+
+    </script>
+
+</body>
+</html>
