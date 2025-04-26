@@ -115,28 +115,38 @@ def get_ontology_classes(graph):
     # Query for things explicitly declared as owl:Class
     # Or things that are the subject of an rdfs:subClassOf triple (broader)
     # Or things used as the range of rdfs:domain (might catch implicitly defined classes)
+    # *** CHANGE: Renamed SPARQL variable from ?class to ?class_uri ***
     query = """
-        SELECT DISTINCT ?class ?label WHERE {
-            { ?class a owl:Class . }
+        SELECT DISTINCT ?class_uri ?label WHERE {
+            { ?class_uri a owl:Class . }
             UNION
-            { ?class rdfs:subClassOf ?super . FILTER (!isBlank(?class)) }
+            { ?class_uri rdfs:subClassOf ?super . FILTER (!isBlank(?class_uri)) }
             UNION
-            { ?prop rdfs:domain ?class . FILTER (!isBlank(?class)) }
+            { ?prop rdfs:domain ?class_uri . FILTER (!isBlank(?class_uri)) }
 
-            FILTER (!isBlank(?class)) # Exclude blank nodes
-            FILTER (!regex(str(?class), "^http://www.w3.org/")) # Exclude RDF, RDFS, OWL, XSD built-ins
+            FILTER (!isBlank(?class_uri)) # Exclude blank nodes
+            FILTER (!regex(str(?class_uri), "^http://www.w3.org/")) # Exclude RDF, RDFS, OWL, XSD built-ins
 
-            OPTIONAL { ?class rdfs:label ?label . FILTER(lang(?label) = "" || langMatches(lang(?label), "en")) }
-        } ORDER BY ?label ?class
+            # *** CHANGE: Use ?class_uri here too ***
+            OPTIONAL { ?class_uri rdfs:label ?label . FILTER(lang(?label) = "" || langMatches(lang(?label), "en")) }
+        } ORDER BY ?label ?class_uri
     """
     results = []
     try:
         for row in graph.query(query):
-            class_uri = str(row.class)
-            label = str(row.label) if row.label else get_label(row.class, graph) # Fallback label
-            results.append({'uri': class_uri, 'label': label})
+            # *** CHANGE: Access row.class_uri instead of row.class ***
+            class_uri_ref = row.class_uri # Get the URIRef object from the row
+            class_uri_str = str(class_uri_ref) # Convert to string
+
+            # *** CHANGE: Use class_uri_ref (the URIRef) for get_label ***
+            label = str(row.label) if row.label else get_label(class_uri_ref, graph) # Fallback label
+
+            results.append({'uri': class_uri_str, 'label': label})
     except Exception as e:
         print(f"Error querying classes: {e}")
+        # Optionally re-raise or log traceback for more detail
+        # import traceback
+        # print(traceback.format_exc())
     return results
 
 def get_properties_for_class(graph, class_uri_str):
