@@ -67,7 +67,7 @@ def get_graph():
 
             # Check if ontology is loaded (simple check: see if a known class exists)
             # Use a class likely defined in your ontology
-            ontology_marker_class = EX.Flaps # Or another core class from ONTOFLAP
+            ontology_marker_class = EX.OFLID10002 # Or another core class from ONTOFLAP
             if (ontology_marker_class, RDF.type, OWL.Class) not in g:
                 print(f"Ontology marker class <{ontology_marker_class}> not found. Parsing from {ONTOLOGY_URL}...")
                 try:
